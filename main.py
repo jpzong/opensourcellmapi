@@ -54,9 +54,3 @@ async def image_to_text(filename: UploadFile = File(..., title="Nombre del archi
 
     except Exception as e:
         return {"message": f"Error al procesar la imagen: {e}"}
-
-nest_asyncio.apply()
-
-config = uvicorn.Config(app=app, host="127.0.0.1", port=8000, loop='asyncio')
-server = uvicorn.Server(config)
-await server.serve()
