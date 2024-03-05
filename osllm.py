@@ -14,14 +14,28 @@ from IPython.display import HTML, display
 from PIL import Image
 import os
 import time
+import PyPDF2 # New library pending to include in requirements
 
 class OpenSourceLLM:
-    def __init__(self, model="llama2"):
-        self.llm = Ollama(
-            model=model, #mixtral
-            verbose=True,
-            callback_manager=CallbackManager([StreamingStdOutCallbackHandler()])
-            )        
+    OPCIONES_MODELOS = {
+        "llama2": "Llama2 (70B)",
+        "mixtral": "Mixtral (35B)",
+        "bakllava": "Bakllava (15B)"
+    }
+
+    def __init__(self):
+        model_name = None
+        while model_name not in self.OPCIONES_MODELOS:
+            print("Modelos disponibles:")
+            for name, description in self.OPCIONES_MODELOS.items():
+                print(f"- {name}: {description}")
+            model_name = input("Elige el modelo que deseas utilizar: ")
+
+            self.llm = Ollama(
+                model=model_name,
+                verbose=True,
+                callback_manager=CallbackManager([StreamingStdOutCallbackHandler()])
+            )
 
     def rm_old_files(self):
         img_dir = "img"
@@ -34,7 +48,7 @@ class OpenSourceLLM:
             if os.path.isfile(filepath) and tiempo_actual - os.path.getmtime(filepath) > un_dia:
                 os.remove(filepath)
 
-    def convert_to_base64(self,pil_image):
+    def convert_to_base64(self, pil_image):
         """
         Convert PIL images to Base64 encoded strings
 
@@ -47,12 +61,40 @@ class OpenSourceLLM:
         img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
         return img_str
 
-    def img2text(self,filename,prompt):
-        file_path = "img/"+filename
+    def img2text(self, filename, prompt):
+        file_path = "img/" + filename
         pil_image = Image.open(file_path)
         image_b64 = self.convert_to_base64(pil_image)
         llm_with_image_context = self.llm.bind(images=[image_b64])
         return llm_with_image_context.invoke(prompt)
 
-    def text2text(self,prompt):
-         return self.llm.invoke(prompt)
+    def text2text(self, prompt):
+        return self.llm.invoke(prompt)
+
+def text2chatbot(self, filename):
+    try:
+        if filename.endswith('.pdf'):
+            with open(filename, "rb") as pdf_file:
+                pdf_reader = PyPDF2.PdfReader(pdf_file)
+                text = "\n".join(page.extract_text() for page in pdf_reader.pages)
+        elif filename.endswith(".txt"):
+            with open(filename, "r") as text_file:
+                text = text_file.read()
+        else:
+            raise ValueError("Formato de archivo no soportado")
+
+        relevant_text = text[:1000]
+
+        prompt = f"Por favor proporcioname un resumen y aspectos clave acerca del siguiente texto:\n{relevant_text}"
+        response = self.llm.invoke(prompt)
+        print(response)
+
+        while True:
+            user_query = input("Escribe una pregunta acerca del texto: (o escribe 'cerrar' para terminar): ")
+            if user_query.lower() == "cerrar":
+                break
+            response = self.llm.invoke(user_query, context=text)
+            print(response)
+
+    except Exception as e:
+        print("Error procesando el archivo:", e)
