@@ -11,19 +11,22 @@ app = FastAPI()
 llm = OpenSourceLLM()
 @app.get("/")
 def read_root():
-    return {"message": "Estoy vivo!"}
+    return {"message": 'MODELOS_CARGADOS = ["llama2": "Llama2 (70B)","mixtral": "Mixtral (35B)","bakllava": "Bakllava (15B)"]'}
 
-@app.post("/uploadfile/")
-async def create_upload_file(file: UploadFile = File(...),speakers: str = Query(..., title="Speaker Name", description="Name of the speaker"),
-                             language: str = Query(..., title="Language", description="Language for speech-to-text")):
+@app.pos("/download_model/")
+async def download_model(model: str = Query(..., title="Elección de modelo", description="Elección de modelo a descargar desde el repositorio de Ollama")):
     try:
-        if file.filename.endswith('.mp3'):
-            with open(f"/workspace/{file.filename}", "wb") as mp3_file:
-                shutil.copyfileobj(file.file, mp3_file)
-            #subprocess.run(["python","audio2text.py",f"uploaded_files/{file.filename}",speakers,language])
-            return JSONResponse(content=jsonable_encoder({"message": f"File uploaded successfully, speakers= {speakers}, language={language}"}), status_code=200)
-        else:
-            return JSONResponse(content=jsonable_encoder({"error": "Only MP3 files are allowed"}), status_code=400)
+        subprocess.run(['ollama', 'pull', model])
+        return JSONResponse(content=jsonable_encoder({"message": f" Descargado el modelo {model} exitosamente"}), status_code=200)
+    except Exception as e:
+        return JSONResponse(content=jsonable_encoder({"error": str(e)}), status_code=500)
+
+@app.get("/txt2txt/")
+async def txt2txt(model: str = Query(..., title="Elección de modelo", description="Elección de modelo con opciones en: llama2, mixtral"),
+                  prompt: str = Query(..., title="Prompt", description="Instrucción en la consulta al LLM")):
+    try:
+        res = llm.text2text(prompt)
+        return JSONResponse(content=jsonable_encoder({"message": f"{res}"}), status_code=200)
     except Exception as e:
         return JSONResponse(content=jsonable_encoder({"error": str(e)}), status_code=500)
 
