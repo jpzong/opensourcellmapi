@@ -6,6 +6,7 @@ from langchain import hub
 from langchain.chains import RetrievalQA
 from langchain.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
+import PyPDF2
 
 import base64
 from io import BytesIO
@@ -14,28 +15,14 @@ from IPython.display import HTML, display
 from PIL import Image
 import os
 import time
-import PyPDF2 # New library pending to include in requirements
 
 class OpenSourceLLM:
-    OPCIONES_MODELOS = {
-        "llama2": "Llama2 (70B)",
-        "mixtral": "Mixtral (35B)",
-        "bakllava": "Bakllava (15B)"
-    }
-
-    def __init__(self):
-        model_name = None
-        while model_name not in self.OPCIONES_MODELOS:
-            print("Modelos disponibles:")
-            for name, description in self.OPCIONES_MODELOS.items():
-                print(f"- {name}: {description}")
-            model_name = input("Elige el modelo que deseas utilizar: ")
-
-            self.llm = Ollama(
-                model=model_name,
-                verbose=True,
-                callback_manager=CallbackManager([StreamingStdOutCallbackHandler()])
-            )
+    def __init__(self, model="llama2"):
+        self.llm = Ollama(
+            model=model, #mixtral
+            verbose=True,
+            callback_manager=CallbackManager([StreamingStdOutCallbackHandler()])
+            )        
 
     def rm_old_files(self):
         img_dir = "img"
@@ -48,7 +35,7 @@ class OpenSourceLLM:
             if os.path.isfile(filepath) and tiempo_actual - os.path.getmtime(filepath) > un_dia:
                 os.remove(filepath)
 
-    def convert_to_base64(self, pil_image):
+    def convert_to_base64(self,pil_image):
         """
         Convert PIL images to Base64 encoded strings
 
@@ -61,15 +48,15 @@ class OpenSourceLLM:
         img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
         return img_str
 
-    def img2text(self, filename, prompt):
-        file_path = "img/" + filename
+    def img2text(self,filename,prompt):
+        file_path = "img/"+filename
         pil_image = Image.open(file_path)
         image_b64 = self.convert_to_base64(pil_image)
         llm_with_image_context = self.llm.bind(images=[image_b64])
         return llm_with_image_context.invoke(prompt)
 
-    def text2text(self, prompt):
-        return self.llm.invoke(prompt)
+    def text2text(self,prompt):
+         return self.llm.invoke(prompt)
 
 def text2chatbot(self, filename):
     try:
