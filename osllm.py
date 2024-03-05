@@ -6,6 +6,7 @@ from langchain import hub
 from langchain.chains import RetrievalQA
 from langchain.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
+import PyPDF2
 
 import base64
 from io import BytesIO
@@ -56,3 +57,31 @@ class OpenSourceLLM:
 
     def text2text(self,prompt):
          return self.llm.invoke(prompt)
+
+    def text2chatbot(self, filename):
+        try:
+            if filename.endswith('.pdf'):
+                with open(filename, "rb") as pdf_file:
+                    pdf_reader = PyPDF2.PdfReader(pdf_file)
+                    text = "\n".join(page.extract_text() for page in pdf_reader.pages)
+            elif filename.endswith(".txt"):
+                with open(filename, "r") as text_file:
+                    text = text_file.read()
+            else:
+                raise ValueError("Formato de archivo no soportado")
+
+            relevant_text = text[:1000]
+
+            prompt = f"Por favor proporcioname un resumen y aspectos clave acerca del siguiente texto:\n{relevant_text}"
+            response = self.llm.invoke(prompt)
+            print(response)
+
+            while True:
+                user_query = input("Escribe una pregunta acerca del texto: (o escribe 'cerrar' para terminar): ")
+                if user_query.lower() == "cerrar":
+                    break
+                response = self.llm.invoke(user_query, context=text)
+                print(response)
+
+        except Exception as e:
+            print("Error procesando el archivo:", e)
