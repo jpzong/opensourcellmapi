@@ -49,7 +49,7 @@ class OpenSourceLLM:
         return img_str
 
     def img2text(self,filename,prompt):
-        file_path = "img/"+filename
+        file_path = 'img/'+filename
         pil_image = Image.open(file_path)
         image_b64 = self.convert_to_base64(pil_image)
         llm_with_image_context = self.llm.bind(images=[image_b64])

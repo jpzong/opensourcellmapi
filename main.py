@@ -11,7 +11,6 @@ import uvicorn
 
 app = FastAPI()
 
-llm = OpenSourceLLM()
 @app.get("/")
 def read_root():
     return {"message": 'MODELOS_CARGADOS = ["llama2": "Llama2 (70B)","mixtral": "Mixtral (35B)","bakllava": "Bakllava (15B)"]'}
@@ -28,29 +27,22 @@ async def download_model(model: str = Query(..., title="Elección de modelo", de
 async def txt2txt(model: str = Query(..., title="Elección de modelo", description="Elección de modelo con opciones en: llama2, mixtral"),
                   prompt: str = Query(..., title="Prompt", description="Instrucción en la consulta al LLM")):
     try:
+        llm = OpenSourceLLM(model)
         res = llm.text2text(prompt)
         return JSONResponse(content=jsonable_encoder({"message": f"{res}"}), status_code=200)
     except Exception as e:
         return JSONResponse(content=jsonable_encoder({"error": str(e)}), status_code=500)
 
-@app.get("/image-to-text/")
-async def image_to_text(filename: UploadFile = File(..., title="Nombre del archivo de imagen", description="Nombre del archivo de imagen"),
-                          prompt: str = Query(..., title="Image Prompt", description="Description or prompt for the image")):
-    """Procesa una imagen y genera texto utilizando un modelo de lenguaje."""
-
-    self.rm_old_files()  # Clean up old files before processing
-
-    file_path = f"img/{filename.filename}"
+@app.post("/image-to-text/")
+async def image_to_text(file: UploadFile = File(...),prompt: str = Query(..., title="Image Prompt", description="Description or prompt for the image")):
+    #self.rm_old_files()  # Clean up old files before processing
     try:
-        pil_image = Image.open(file_path)
-        image_b64 = self.convert_to_base64(pil_image)
-        generated_text = self.img2text(filename, prompt)
-
-        response_content = {
-            "message": "Image-to-text generation successful",
-            "generated_text": generated_text
-        }
-        return response_content
-
+        with open(f"img/{file.filename}", "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        file_path = file.filename
+        
+        llm = OpenSourceLLM(model='bakllava')
+        res = llm.img2text(file_path,prompt)
+        return JSONResponse(content=jsonable_encoder({"message": f"{res}"}), status_code=200)
     except Exception as e:
-        return {"message": f"Error al procesar la imagen: {e}"}
+        return JSONResponse(content=jsonable_encoder({"error": str(e)}), status_code=500)
