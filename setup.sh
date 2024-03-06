@@ -16,3 +16,6 @@ ollama pull bakllava
 
 # Instalar los paquetes de Python langchain y langchain_experimental usando pip
 pip install -r requirements.txt
+
+# Comenzar servidor de API
+uvicorn main:app --reload --host 0.0.0.0 --port 8000

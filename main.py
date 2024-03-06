@@ -16,7 +16,7 @@ llm = OpenSourceLLM()
 def read_root():
     return {"message": 'MODELOS_CARGADOS = ["llama2": "Llama2 (70B)","mixtral": "Mixtral (35B)","bakllava": "Bakllava (15B)"]'}
 
-@app.pos("/download_model/")
+@app.post("/download_model/")
 async def download_model(model: str = Query(..., title="Elección de modelo", description="Elección de modelo a descargar desde el repositorio de Ollama")):
     try:
         subprocess.run(['ollama', 'pull', model])
